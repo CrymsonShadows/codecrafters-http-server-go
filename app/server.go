@@ -1,7 +1,10 @@
 package main
 
 import (
+	"bufio"
 	"fmt"
+	"strings"
+
 	// Uncomment this block to pass the first stage
 	"net"
 	"os"
@@ -36,5 +39,19 @@ func main() {
 func handleConnection(conn net.Conn) {
 	defer conn.Close()
 
-	conn.Write([]byte("HTTP/1.1 200 OK\r\n\r\n"))
+	reader := bufio.NewReader(conn)
+
+	requestLine, err := reader.ReadString('\n')
+	if err != nil {
+		fmt.Println("Error reading request line: ", err.Error())
+		return
+	}
+
+	fmt.Printf("Request line: %s", requestLine)
+	url := strings.Split(requestLine, " ")[1]
+	if url == "/" {
+		conn.Write([]byte("HTTP/1.1 200 OK\r\n\r\n"))
+		return
+	}
+	conn.Write([]byte("HTTP/1.1 404 Not Found\r\n\r\n"))
 }
