@@ -1,20 +1,14 @@
 package main
 
 import (
-	"bufio"
 	"fmt"
-	"strings"
-
-	// Uncomment this block to pass the first stage
 	"net"
 	"os"
+	"strings"
 )
 
 func main() {
-	// You can use print statements as follows for debugging, they'll be visible when running tests.
 	fmt.Println("Logs from your program will appear here!")
-
-	// Uncomment this block to pass the first stage
 
 	l, err := net.Listen("tcp", "0.0.0.0:4221")
 	if err != nil {
@@ -39,13 +33,13 @@ func main() {
 func handleConnection(conn net.Conn) {
 	defer conn.Close()
 
-	reader := bufio.NewReader(conn)
+	const CRLF = "\r\n"
 
-	requestLine, err := reader.ReadString('\n')
-	if err != nil {
-		fmt.Println("Error reading request line: ", err.Error())
-		return
-	}
+	buff := make([]byte, 1024)
+	conn.Read(buff)
+
+	request := string(buff)
+	requestLine := strings.Split(request, CRLF)[0]
 
 	fmt.Printf("Request line: %s", requestLine)
 	url := strings.Split(requestLine, " ")[1]
