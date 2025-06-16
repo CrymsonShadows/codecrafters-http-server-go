@@ -46,6 +46,11 @@ func handleConnection(conn net.Conn) {
 	if url == "/" {
 		conn.Write([]byte("HTTP/1.1 200 OK\r\n\r\n"))
 		return
+	} else if strings.HasPrefix(url, "/echo/") {
+		str, _ := strings.CutPrefix(url, "/echo/")
+		resp := fmt.Sprintf("HTTP/1.1 200 OK%sContent-Type: text/plain%sContent-Length: %d%s%s%s", CRLF, CRLF, len(str), CRLF, CRLF, str)
+		conn.Write([]byte(resp))
+		return
 	}
 	conn.Write([]byte("HTTP/1.1 404 Not Found\r\n\r\n"))
 }
