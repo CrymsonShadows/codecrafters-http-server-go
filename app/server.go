@@ -39,9 +39,11 @@ func handleConnection(conn net.Conn) {
 	conn.Read(buff)
 
 	request := string(buff)
-	requestLine := strings.Split(request, CRLF)[0]
+	splitRequest := strings.Split(request, CRLF)
+	numLines := len(splitRequest)
+	requestLine := splitRequest[0]
 
-	fmt.Printf("Request line: %s", requestLine)
+	fmt.Printf("Request line: %s\nnumber of lines %d", requestLine, numLines)
 	url := strings.Split(requestLine, " ")[1]
 	if url == "/" {
 		conn.Write([]byte("HTTP/1.1 200 OK\r\n\r\n"))
@@ -51,6 +53,15 @@ func handleConnection(conn net.Conn) {
 		resp := fmt.Sprintf("HTTP/1.1 200 OK%sContent-Type: text/plain%sContent-Length: %d%s%s%s", CRLF, CRLF, len(str), CRLF, CRLF, str)
 		conn.Write([]byte(resp))
 		return
+	} else if url == "/user-agent" {
+		for _, line := range splitRequest {
+			if strings.HasPrefix(strings.ToLower(line), "user-agent: ") {
+				userAgent := line[12:]
+				resp := fmt.Sprintf("HTTP/1.1 200 OK%sContent-Type: text/plain%sContent-Length: %d%s%s%s", CRLF, CRLF, len(userAgent), CRLF, CRLF, userAgent)
+				conn.Write([]byte(resp))
+				return
+			}
+		}
 	}
 	conn.Write([]byte("HTTP/1.1 404 Not Found\r\n\r\n"))
 }
