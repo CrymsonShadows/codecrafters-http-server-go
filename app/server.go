@@ -92,7 +92,7 @@ func handleConnection(conn net.Conn) {
 		for _, line := range splitRequest {
 			if strings.HasPrefix(strings.ToLower(line), "user-agent: ") {
 				userAgent := line[12:]
-				resp := fmt.Sprintf("HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nContent-Length: %d%s", len(userAgent), userAgent)
+				resp := fmt.Sprintf("HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nContent-Length: %d\r\n\r\n%s", len(userAgent), userAgent)
 				conn.Write([]byte(resp))
 				return
 			}
