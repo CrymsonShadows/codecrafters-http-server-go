@@ -7,6 +7,30 @@ import (
 	"strings"
 )
 
+type StatusLine struct {
+	version    string
+	statusCode int
+	reason     string
+}
+
+type RequestLine struct {
+	httpMethod    string
+	requestTarget string
+	httpVersion   string
+}
+
+type HTTPResponse struct {
+	statusLine StatusLine
+	headers    map[string]string
+	body       string
+}
+
+type HTTPRequest struct {
+	requestLine RequestLine
+	headers     map[string]string
+	body        string
+}
+
 func main() {
 	fmt.Println("Logs from your program will appear here!")
 
@@ -40,28 +64,51 @@ func handleConnection(conn net.Conn) {
 
 	request := string(buff)
 	splitRequest := strings.Split(request, CRLF)
-	numLines := len(splitRequest)
-	requestLine := splitRequest[0]
+	splitRequestLine := strings.Split(splitRequest[0], " ")
+	body := ""
+	if splitRequest[len(splitRequest)-2] == "" {
+		body = splitRequest[len(splitRequest)-1]
+	}
+	httpReq := HTTPRequest{
+		requestLine: RequestLine{
+			httpMethod:    splitRequestLine[0],
+			requestTarget: splitRequestLine[1],
+			httpVersion:   splitRequestLine[2],
+		},
+		headers: extractHeaders(splitRequest[1:]),
+		body:    body,
+	}
 
-	fmt.Printf("Request line: %s\nnumber of lines %d", requestLine, numLines)
-	url := strings.Split(requestLine, " ")[1]
+	url := httpReq.requestLine.requestTarget
 	if url == "/" {
 		conn.Write([]byte("HTTP/1.1 200 OK\r\n\r\n"))
 		return
 	} else if strings.HasPrefix(url, "/echo/") {
 		str, _ := strings.CutPrefix(url, "/echo/")
-		resp := fmt.Sprintf("HTTP/1.1 200 OK%sContent-Type: text/plain%sContent-Length: %d%s%s%s", CRLF, CRLF, len(str), CRLF, CRLF, str)
+		resp := fmt.Sprintf("HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nContent-Length: %d\r\n\r\n%s", len(str), str)
 		conn.Write([]byte(resp))
 		return
 	} else if url == "/user-agent" {
 		for _, line := range splitRequest {
 			if strings.HasPrefix(strings.ToLower(line), "user-agent: ") {
 				userAgent := line[12:]
-				resp := fmt.Sprintf("HTTP/1.1 200 OK%sContent-Type: text/plain%sContent-Length: %d%s%s%s", CRLF, CRLF, len(userAgent), CRLF, CRLF, userAgent)
+				resp := fmt.Sprintf("HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nContent-Length: %d%s", len(userAgent), userAgent)
 				conn.Write([]byte(resp))
 				return
 			}
 		}
 	}
 	conn.Write([]byte("HTTP/1.1 404 Not Found\r\n\r\n"))
+}
+
+func extractHeaders(splitRequest []string) map[string]string {
+	headers := make(map[string]string)
+	for _, line := range splitRequest {
+		if line == "" {
+			return headers
+		}
+		splitHeader := strings.Split(line, ": ")
+		headers[splitHeader[0]] = splitHeader[1]
+	}
+	return headers
 }
