@@ -1,6 +1,7 @@
 package main
 
 import (
+	"flag"
 	"fmt"
 	"net"
 	"os"
@@ -32,13 +33,16 @@ type HTTPRequest struct {
 }
 
 func main() {
-	fmt.Println("Logs from your program will appear here!")
+	directory := *flag.String("directory", "/tmp/", "The directory the server will look for files")
+	flag.Parse()
 
 	l, err := net.Listen("tcp", "0.0.0.0:4221")
 	if err != nil {
 		fmt.Println("Failed to bind to port 4221")
 		os.Exit(1)
 	}
+
+	fmt.Println("Server started.")
 
 	defer l.Close()
 
@@ -49,12 +53,12 @@ func main() {
 			continue
 		}
 
-		go handleConnection(conn)
+		go handleConnection(conn, directory)
 
 	}
 }
 
-func handleConnection(conn net.Conn) {
+func handleConnection(conn net.Conn, directory string) {
 	defer conn.Close()
 
 	const CRLF = "\r\n"
@@ -97,6 +101,14 @@ func handleConnection(conn net.Conn) {
 				return
 			}
 		}
+	} else if strings.HasPrefix(url, "/files/") {
+		fileName, _ := strings.CutPrefix(url, "/files/")
+		content, err := os.ReadFile(fmt.Sprintf("%s%s", directory, fileName))
+		if err != nil {
+			conn.Write([]byte("HTTP/1.1 404 Not Found\r\n\r\n"))
+			return
+		}
+		conn.Write([]byte(fmt.Sprintf("HTTP/1.1 200 OK\r\nContent-Type: application/octet-stream\r\nContent-Length: %d\r\n\r\n%s", len(content), content)))
 	}
 	conn.Write([]byte("HTTP/1.1 404 Not Found\r\n\r\n"))
 }
