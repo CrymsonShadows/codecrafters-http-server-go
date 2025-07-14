@@ -33,8 +33,9 @@ type HTTPRequest struct {
 }
 
 func main() {
-	directory := *flag.String("directory", "/tmp/", "The directory the server will look for files")
+	directoryPtr := flag.String("directory", "/tmp/", "The directory the server will look for files")
 	flag.Parse()
+	directory := *directoryPtr
 
 	l, err := net.Listen("tcp", "0.0.0.0:4221")
 	if err != nil {
@@ -42,7 +43,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	fmt.Println("Server started.")
+	fmt.Printf("Server started. Directory: %s\n", directory)
 
 	defer l.Close()
 
